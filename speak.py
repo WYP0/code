@@ -1,3 +1,6 @@
+'''
+按下空格键开始录音，松开停止
+'''
 import pyaudio
 import wave
 import keyboard

@@ -1,3 +1,6 @@
+'''
+该文件实现公众号的自动回复功能，集成了音频文件转写，实时语音识别等功能
+'''
 from dataclasses import replace
 from email import message
 from http import client
@@ -34,6 +37,7 @@ start = True
 source = []
 target = []
 
+#将.wav文件转为.mps文件
 def trans_wav_to_mp3(filepath):
     song = AudioSegment.from_wav(filepath)
     song.export("temp.mp3", format="mp3")
@@ -68,6 +72,7 @@ def BaiduYuYin(fileurl, token):
     except:
         return 'cannot recognize'
 
+#获取百度API token
 def Gettokent():
     baidu_server = "https://openapi.baidu.com/oauth/2.0/token?"
     grant_type = "client_credentials"
@@ -85,6 +90,8 @@ def Gettokent():
     token = json.loads(res.text)["access_token"]
     return token
 
+
+#简单的解析语音转写结果用以控制微信发送信息
 def get_keys(res):
     size = len(res)
     key_ls = []
@@ -106,6 +113,7 @@ def get_keys(res):
     key = "".join(key_ls)
     return key
 
+#当空格按下时录音至temp.wav，当'a'按下时，开始实时语音转写， 当'q'按下时停止语音相关功能
 def voice_start():
     global start
     while True:
@@ -122,6 +130,7 @@ def voice_start():
         if keyboard.is_pressed('q'):
             sys.exit()
 
+#用以控制读取时间，当空格键松开时录音结束
 def read_key():
     global q
     while True:
@@ -131,6 +140,7 @@ def read_key():
             q = True
             break
 
+#录制音频
 def rec(file_name):
     p = pyaudio.PyAudio()
     stream = p.open(format=FORMAT,
@@ -145,9 +155,11 @@ def rec(file_name):
 
     global q, start
 
+    #开启另一个线程用以检测是否结束录音
     t = threading.Thread(target=read_key)
     t.start()
 
+    #开始录音
     for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
         data = stream.read(CHUNK)
         frames.append(data)
@@ -155,11 +167,11 @@ def rec(file_name):
             break
 
     print("stop recording!")
-
+    #关闭音频流
     stream.stop_stream()
     stream.close()
     p.terminate()
-
+    #将读取到的音频流
     wf = wave.open(file_name, 'wb')
     wf.setnchannels(CHANNELS)
     wf.setsampwidth(p.get_sample_size(FORMAT))
@@ -168,6 +180,7 @@ def rec(file_name):
     wf.close()
     start = True 
 
+#可以推送音乐
 def music_data():
     music_list = [
         ["微信你不懂爱", "龚琳娜最新力作", "http://weixin.com/budongai.mp3",]
@@ -175,7 +188,7 @@ def music_data():
     # num = random.randint(0,2)
     return music_list[0]
 
-
+#上传媒体素材到公众号并返回media_id
 def get_media_ID(path, token, type):
     url='https://api.weixin.qq.com/cgi-bin/material/add_material'
     payload={
@@ -188,6 +201,7 @@ def get_media_ID(path, token, type):
     # print(dict)
     return dict['media_id']
 
+#获取当前媒体素材
 def get_media_list(token):
     url="https://api.weixin.qq.com/cgi-bin/material/batchget_material?access_token="+token
     datas={
@@ -203,20 +217,24 @@ def get_media_list(token):
 
 
 if __name__ == "__main__":
+    #开启新线程来实现语音相关功能
     voice = threading.Thread(target=voice_start)
     voice.start()
     access_token = client.get_access_token()
     # print(token)
 
+    #订阅收到后回复
     @robot.subscribe
     def sub():
         return "thank you for your subscribe"
 
+    #收到'music'文本信息后回复
     @robot.filter('music')
     def music():
         reply = music_data()
         return reply
     
+    #收到'voice'文本信息后回复最近录入的语音信息
     @robot.filter("voice")
     def voice(message):
         # tokken = Gettokent()
@@ -228,6 +246,7 @@ if __name__ == "__main__":
         reply = VoiceReply(message=message, media_id = media_id)
         return reply
 
+    #收到文本信息后保存并回复
     @robot.text
     def tex(message, session):
         length = str(len(session))
@@ -241,6 +260,7 @@ if __name__ == "__main__":
         #     print(session[i])
         return reply
 
+    #收到图片信息后回复
     @robot.image
     def img(message, session):
         length = str(len(session))
@@ -249,7 +269,7 @@ if __name__ == "__main__":
         reply = ImageReply(message=message, media_id = media_id)
         return reply
 
-    
+    #设定发送节点
     robot.config['HOST'] = '0.0.0.0'
     robot.config['PORT'] = 80
     robot.run()

@@ -1,5 +1,9 @@
 # -*- encoding:utf-8 -*-
 
+'''
+该文件使用讯飞进行实时语音转写
+'''
+
 import chunk
 import sys
 import hashlib
@@ -20,6 +24,7 @@ import keyboard
 # sys.setdefaultencoding("utf8")
 logging.basicConfig()
 
+#讯飞参数
 base_url = "ws://rtasr.xfyun.cn/v1/ws"
 app_id = "539e5c09"
 api_key = "139f309eadd3b64ef434985c8617c3fb"
@@ -29,6 +34,7 @@ pd = "edu"
 
 end_tag = "{\"end\": true}"
 
+#读取音频流的参数
 CHUNK = 1024
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
@@ -36,6 +42,7 @@ RATE = 16000
 # RECORD_SECONDS = 60
 
 class Client():
+    #连接websocket
     def __init__(self):
         ts = str(int(time.time()))
         tt = (app_id + ts).encode('utf-8')
@@ -53,8 +60,10 @@ class Client():
         self.trecv = threading.Thread(target=self.recv)
         self.trecv.start()
 
+    #读取实时音频并发送到服务端进行语音识别
     def send(self, file_path):
         p = pyaudio.PyAudio()
+        #打开语音流
         stream = p.open(format=FORMAT,
                         channels=CHANNELS,
                         rate=RATE,
@@ -71,14 +80,18 @@ class Client():
             index = 1
             while True:
                 # chunk = file_object.read(CHUNK)
+                #读取音频流
                 chunk = stream.read(CHUNK)
                 frames.append(chunk)
+                #当空格键按下时停止语音识别
                 if keyboard.is_pressed(' '):
                     break
+                #发送语音流
                 self.ws.send(chunk)
                 index += 1
                 time.sleep(0.04)
         finally:
+            #结束对音频流的读取并保存至file_path中
             # file_object.close()
             print("录音结束!")
             stream.stop_stream()
@@ -94,6 +107,7 @@ class Client():
         self.ws.send(bytes(end_tag.encode('utf-8')))
         print("send end tag success")
 
+#解析语音的转写结果
     def recv(self):
         try:
             while self.ws.connected:
@@ -128,7 +142,7 @@ class Client():
                     return
         except websocket.WebSocketConnectionClosedException:
             print("receive result end")
-
+    #关闭websocket
     def close(self):
         self.ws.close()
         print("connection closed")

@@ -1,3 +1,6 @@
+'''
+该文件调用百度API进行实时语音转写，并使用pyautogui实现语音控制功能
+'''
 from setuptools import Command
 import websocket
 
@@ -28,12 +31,13 @@ hotword = ["百度网盘", "账号", "密码"]
 库的报错 on_error()
 """
 
-
+#通过图片找到对应位置并点击
 def mouseClick(image, xoffset=0, clicks = 1):
     x, y = pyautogui.locateCenterOnScreen(image)
     pyautogui.click(x+xoffset, y, clicks = clicks)
     time.sleep(1)
 
+#从获取到的语音中找到关键词
 def find_command(key):
     for word in hotword:
         if key.find(word) != -1:
@@ -41,6 +45,7 @@ def find_command(key):
             return command
     return None
 
+#发送开始帧
 def send_start_params(ws):
     """
     开始参数帧
@@ -68,10 +73,12 @@ def send_audio(ws):
     :param  websocket.WebSocket ws:
     :return:
     """
+    #音频流参数
     CHUNK = 1024
     FORMAT = pyaudio.paInt16
     CHANNELS = 1
     RATE = 16000
+    #开启音频流
     p = pyaudio.PyAudio()
     stream = p.open(format=FORMAT,
                     channels=CHANNELS,
@@ -82,16 +89,20 @@ def send_audio(ws):
     print("开始录音,请说话......")
     frames = []
     while True:
+        #读取音频流
         chunk = stream.read(CHUNK)
         frames.append(chunk)
         if keyboard.is_pressed(' '):
             break
+        #发送音频帧
         ws.send(chunk, websocket.ABNF.OPCODE_BINARY)
         time.sleep(0.04)
     print("录音结束!")
+    #关闭音频流
     stream.stop_stream()
     stream.close()
     p.terminate()
+    #将读取到的音频保存至pcm_file
     wf = wave.open(pcm_file, 'wb')
     wf.setnchannels(CHANNELS)
     wf.setsampwidth(p.get_sample_size(FORMAT))
@@ -138,6 +149,7 @@ def on_message(ws, message):
     else:
         print(res_dict["err_msg"])
 
+#处理语音转写结果并调用pyautogui进行对应的操作
 def handle_voice_input(res):
     size = len(res)
     key_ls = []

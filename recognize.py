@@ -1,3 +1,6 @@
+'''
+该文件对音频文件进行语音转写，用在了we_response.py中
+'''
 import requests
 import json
 import pyaudio

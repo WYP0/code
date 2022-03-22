@@ -1,3 +1,4 @@
+#在该文件中设定百度语音识别的参数
 APPID = 25713554
 
 APPKEY = "X72Nc5j9m08uVUKGebMcEq0G"
