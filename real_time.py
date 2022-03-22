@@ -1,3 +1,4 @@
+from setuptools import Command
 import websocket
 
 import threading
@@ -8,10 +9,13 @@ import sys
 import pyaudio
 import keyboard
 import wave
+import pyautogui
 
 import const
 
 pcm_file = "16k-0.pcm"
+
+hotword = ["百度网盘", "账号", "密码"]
 
 """
 1. 连接 ws_app.run_forever()
@@ -24,6 +28,18 @@ pcm_file = "16k-0.pcm"
 库的报错 on_error()
 """
 
+
+def mouseClick(image, xoffset=0, clicks = 1):
+    x, y = pyautogui.locateCenterOnScreen(image)
+    pyautogui.click(x+xoffset, y, clicks = clicks)
+    time.sleep(1)
+
+def find_command(key):
+    for word in hotword:
+        if key.find(word) != -1:
+            command = word
+            return command
+    return None
 
 def send_start_params(ws):
     """
@@ -116,8 +132,69 @@ def on_message(ws, message):
     if (res_dict["err_msg"] == 'OK'):
         if (res_dict["type"] != 'HEARTBREAT'):
             print(res_dict["result"])
+            if (res_dict["type"] == "FIN_TEXT"):
+                result = res_dict["result"]
+                handle_voice_input(result)
     else:
         print(res_dict["err_msg"])
+
+def handle_voice_input(res):
+    size = len(res)
+    key_ls = []
+    key_sec = False
+    key_get = False
+    i = 0
+    key_cmd = ""
+    cmd_ls = ["开始", "发送", "打开", "关闭", "输入"]
+
+    while i < size:
+        if res[i:i+4] == "小爱同学":
+            i = i+4
+            key_sec = True
+            continue
+        if (res[i:i+2] in cmd_ls) and key_sec:
+            key_cmd = res[i:i+2]
+            i = i+2
+            key_get = True
+            continue
+        if key_get:
+            key_ls.append(res[i])
+            if (res[i:i+2] == "截图"):
+                pyautogui.screenshot("image.png")
+        i = i+1
+    key = "".join(key_ls)
+    command = find_command(key)
+    # print(command)
+    # print(key_cmd)
+    if command == "百度网盘":
+        if key_cmd == "打开":
+            pyautogui.click(1745, 20)
+            time.sleep(1)
+            mouseClick("baidunet.png", clicks=2)
+            
+        elif key_cmd == "关闭":
+            mouseClick("close.png")
+        command = " "
+        # x, y = pyautogui.locateCenterOnScreen(R"baidunet.png")
+        # pyautogui.doubleClick(x, y)
+    if command == "账号":
+        # try:
+        # mouseClick("account.png")
+        # except:
+        #     mouseClick
+        num = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+        text_ls = []
+        for k in key_ls:
+            if k in num:
+                text_ls.append(k)
+        text = "".join(text_ls)
+        print(text)
+        # username = pyautogui.prompt(text=text, title='账号')
+        pyautogui.typewrite(text, interval=0.2)
+
+    # if command == "密码":
+
+    return key
 
 
 if __name__ == "__main__":
