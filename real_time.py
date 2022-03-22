@@ -33,7 +33,10 @@ hotword = ["百度网盘", "账号", "密码"]
 
 #通过图片找到对应位置并点击
 def mouseClick(image, xoffset=0, clicks = 1):
-    x, y = pyautogui.locateCenterOnScreen(image)
+    try:
+        x, y = pyautogui.locateCenterOnScreen(image)
+    except:
+        print("未找到该图标")
     pyautogui.click(x+xoffset, y, clicks = clicks)
     time.sleep(1)
 
@@ -181,7 +184,7 @@ def handle_voice_input(res):
     if command == "百度网盘":
         if key_cmd == "打开":
             pyautogui.click(1745, 20)
-            time.sleep(1)
+            time.sleep(0.04)
             mouseClick("baidunet.png", clicks=2)
             
         elif key_cmd == "关闭":
@@ -191,9 +194,9 @@ def handle_voice_input(res):
         # pyautogui.doubleClick(x, y)
     if command == "账号":
         # try:
-        # mouseClick("account.png")
+        mouseClick("account.png")
         # except:
-        #     mouseClick
+        #     mouseClick("account.png")
         num = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         text_ls = []
         for k in key_ls:
@@ -201,7 +204,6 @@ def handle_voice_input(res):
                 text_ls.append(k)
         text = "".join(text_ls)
         print(text)
-        # username = pyautogui.prompt(text=text, title='账号')
         pyautogui.typewrite(text, interval=0.2)
 
     # if command == "密码":
